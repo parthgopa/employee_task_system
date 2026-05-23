@@ -23,6 +23,9 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Upload artifacts
+upload/
+
 # Misc
 *.pyc
 *.pyo
