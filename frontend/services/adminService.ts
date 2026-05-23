@@ -11,7 +11,6 @@ export const adminService = {
     if (status) params.set("status", status);
     return api.get(`/api/admin/employees/${id}/tasks?${params}`);
   },
-  
   getEmployeeHistory: (id: string, page = 1) =>
     api.get(`/api/admin/employees/${id}/history?page=${page}`),
 };
