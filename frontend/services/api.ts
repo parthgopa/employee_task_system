@@ -1,6 +1,6 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://task.merishiksha.com/api";
 
 const api = axios.create({
   baseURL: API_URL,
