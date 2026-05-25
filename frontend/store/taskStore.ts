@@ -6,8 +6,9 @@ export interface Task {
   title: string;
   description: string;
   priority: "low" | "medium" | "high";
-  status: "pending" | "completed";
+  status: "not_initiated" | "in_progress" | "completed";
   taskDate: string;
+  projectId?: string | null;
   createdAt: string;
   completedAt: string | null;
 }

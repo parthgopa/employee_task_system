@@ -10,7 +10,8 @@ interface TaskFiltersProps {
 export default function TaskFilters({ filter, setFilter, sort, setSort }: TaskFiltersProps) {
   const filterBtns = [
     { value: "all", label: "All" },
-    { value: "pending", label: "Pending" },
+    { value: "not_initiated", label: "Not Started" },
+    { value: "in_progress", label: "In Progress" },
     { value: "completed", label: "Completed" },
   ];
 

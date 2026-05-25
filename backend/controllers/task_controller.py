@@ -10,7 +10,11 @@ def get_today_tasks():
     db = get_db()
     user_id = g.user_id
     date = today_str()
-    tasks = list(db.tasks.find({"userId": ObjectId(user_id), "taskDate": date}).sort("createdAt", 1))
+    # Get daily tasks (no project) + project tasks for today
+    tasks = list(db.tasks.find({
+        "userId": ObjectId(user_id),
+        "taskDate": date
+    }).sort("createdAt", 1))
     return success_response(serialize_list(tasks))
 
 def get_tasks_by_date(date):
@@ -19,7 +23,20 @@ def get_tasks_by_date(date):
         return error_response("Invalid date format. Use YYYY-MM-DD", 422)
     db = get_db()
     user_id = g.user_id
-    tasks = list(db.tasks.find({"userId": ObjectId(user_id), "taskDate": date}).sort("createdAt", 1))
+    query = {"userId": ObjectId(user_id), "taskDate": date}
+    
+    # Filter by project if provided
+    project_id = request.args.get("projectId")
+    if project_id:
+        if project_id == "null":
+            query["projectId"] = None
+        else:
+            try:
+                query["projectId"] = ObjectId(project_id)
+            except:
+                return error_response("Invalid project ID", 422)
+    
+    tasks = list(db.tasks.find(query).sort("createdAt", 1))
     return success_response(serialize_list(tasks))
 
 def create_task():
@@ -35,6 +52,7 @@ def create_task():
         description=data.get("description", ""),
         priority=data.get("priority", "medium"),
         task_date=data.get("taskDate", today_str()),
+        project_id=data.get("projectId"),
     )
     result = db.tasks.insert_one(task_doc)
     task_doc["_id"] = result.inserted_id
@@ -66,12 +84,12 @@ def update_task(task_id):
             return error_response("Invalid priority", 422)
         update_fields["priority"] = data["priority"]
     if "status" in data:
-        if data["status"] not in ["pending", "completed"]:
+        if data["status"] not in ["not_initiated", "in_progress", "completed"]:
             return error_response("Invalid status", 422)
         update_fields["status"] = data["status"]
         if data["status"] == "completed" and task.get("status") != "completed":
             update_fields["completedAt"] = utcnow()
-        elif data["status"] == "pending":
+        elif data["status"] in ["not_initiated", "in_progress"]:
             update_fields["completedAt"] = None
 
     if not update_fields:
@@ -95,7 +113,8 @@ def delete_task(task_id):
         return error_response("Task not found", 404)
     return success_response(None, "Task deleted")
 
-def toggle_task(task_id):
+def update_task_status(task_id):
+    """Update task status with explicit state."""
     db = get_db()
     user_id = g.user_id
     try:
@@ -107,12 +126,40 @@ def toggle_task(task_id):
     if not task:
         return error_response("Task not found", 404)
 
-    new_status = "completed" if task["status"] == "pending" else "pending"
-    update = {"status": new_status, "completedAt": utcnow() if new_status == "completed" else None}
+    data = request.get_json(silent=True) or {}
+    new_status = data.get("status")
+    
+    if new_status not in ["not_initiated", "in_progress", "completed"]:
+        return error_response("Invalid status. Must be: not_initiated, in_progress, completed", 422)
+    
+    update = {"status": new_status}
+    if new_status == "completed":
+        update["completedAt"] = utcnow()
+    else:
+        update["completedAt"] = None
 
     updated = db.tasks.find_one_and_update(
         {"_id": oid},
         {"$set": update},
         return_document=ReturnDocument.AFTER,
     )
-    return success_response(serialize_doc(updated), "Task toggled")
+    return success_response(serialize_doc(updated), "Status updated")
+
+def get_tasks_by_project(project_id):
+    """Get all tasks for a specific project."""
+    db = get_db()
+    user_id = g.user_id
+    
+    try:
+        oid = ObjectId(project_id)
+    except Exception:
+        return error_response("Invalid project ID", 422)
+    
+    # Verify project exists and belongs to user
+    project = db.projects.find_one({"_id": oid, "userId": ObjectId(user_id)})
+    if not project:
+        return error_response("Project not found", 404)
+    
+    # Get all tasks for this project
+    tasks = list(db.tasks.find({"projectId": oid, "userId": ObjectId(user_id)}).sort("taskDate", -1))
+    return success_response(serialize_list(tasks))

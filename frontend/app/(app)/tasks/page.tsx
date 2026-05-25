@@ -11,15 +11,18 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import { useTasks } from "@/hooks/useTasks";
 import type { Task } from "@/store/taskStore";
+import type { Project } from "@/store/projectStore";
+import { projectService } from "@/services/projectService";
 import { todayStr, formatDate } from "@/utils/dateUtils";
+import toast from "react-hot-toast";
 
 export default function TasksPage() {
   const [selectedDate, setSelectedDate] = useState(todayStr());
 
   const {
     tasks, loading, fetchTodayTasks, fetchTasksByDate,
-    createTask, editTask, deleteTask, toggleTask,
-    completedTasks, pendingTasks, completionRate,
+    createTask, editTask, deleteTask, updateTaskStatus, toggleTask,
+    completedTasks, notInitiatedTasks, inProgressTasks, pendingTasks, completionRate,
   } = useTasks(selectedDate);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -30,6 +33,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     if (selectedDate === todayStr()) {
@@ -37,7 +41,17 @@ export default function TasksPage() {
     } else {
       fetchTasksByDate(selectedDate);
     }
+    loadProjects();
   }, [selectedDate, fetchTodayTasks, fetchTasksByDate]);
+
+  const loadProjects = async () => {
+    try {
+      const res = await projectService.getProjects();
+      setProjects(res.data.data || []);
+    } catch {
+      // Silently fail - projects are optional
+    }
+  };
 
   const handleCreate = async (data: Parameters<typeof createTask>[0]) => {
     setFormLoading(true);
@@ -74,7 +88,9 @@ export default function TasksPage() {
   const filteredTasks = tasks
     .filter((t) => {
       if (filter === "completed") return t.status === "completed";
-      if (filter === "pending") return t.status === "pending";
+      if (filter === "not_initiated") return t.status === "not_initiated";
+      if (filter === "in_progress") return t.status === "in_progress";
+      if (filter === "pending") return t.status !== "completed";
       return true;
     })
     .filter((t) =>
@@ -131,7 +147,8 @@ export default function TasksPage() {
           <div className="flex gap-4" style={{ marginBottom: "var(--space-5)", flexWrap: "wrap" }}>
             <span className="badge badge-accent">{tasks.length} Total</span>
             <span className="badge badge-completed">{completedTasks.length} Done</span>
-            <span className="badge badge-pending">{pendingTasks.length} Pending</span>
+            <span className="badge badge-pending">{notInitiatedTasks.length} Not Started</span>
+            <span className="badge badge-warning">{inProgressTasks.length} In Progress</span>
             <span className="badge badge-accent">{completionRate}% Complete</span>
           </div>
         )}
@@ -164,7 +181,7 @@ export default function TasksPage() {
               <TaskCard
                 key={task._id}
                 task={task}
-                onToggle={toggleTask}
+                onStatusChange={updateTaskStatus}
                 onEdit={(t) => { setEditTarget(t); setEditOpen(true); }}
                 onDelete={(id) => setDeleteId(id)}
               />
@@ -174,11 +191,11 @@ export default function TasksPage() {
       </div>
 
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Task">
-        <TaskForm onSubmit={handleCreate} loading={formLoading} defaultDate={selectedDate} />
+        <TaskForm onSubmit={handleCreate} loading={formLoading} defaultDate={selectedDate} projects={projects} />
       </Modal>
 
       <Modal isOpen={editOpen} onClose={() => { setEditOpen(false); setEditTarget(null); }} title="Edit Task">
-        <TaskForm onSubmit={handleEdit} initial={editTarget} loading={formLoading} />
+        <TaskForm onSubmit={handleEdit} initial={editTarget} loading={formLoading} projects={projects} />
       </Modal>
 
       <ConfirmDialog

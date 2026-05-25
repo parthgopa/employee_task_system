@@ -14,8 +14,10 @@ import SkeletonCard, { SkeletonStatCard } from "@/components/ui/SkeletonCard";
 import { useTasks } from "@/hooks/useTasks";
 import type { Task } from "@/store/taskStore";
 import { goalService } from "@/services/goalService";
+import { projectService } from "@/services/projectService";
 import { exportDailyReport } from "@/utils/pdfExport";
 import { todayStr } from "@/utils/dateUtils";
+import type { Project } from "@/store/projectStore";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 
@@ -30,7 +32,7 @@ interface Goal {
 export default function DashboardPage() {
   const {
     tasks, loading, completedTasks, pendingTasks,
-    completionRate, fetchTodayTasks, createTask, editTask, deleteTask, toggleTask,
+    completionRate, fetchTodayTasks, createTask, editTask, deleteTask, updateTaskStatus, toggleTask,
   } = useTasks(todayStr());
 
   const [goal, setGoal] = useState<Goal | null>(null);
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const fetchGoal = useCallback(async () => {
     setGoalLoading(true);
@@ -101,7 +104,9 @@ export default function DashboardPage() {
   const filteredTasks = tasks
     .filter((t) => {
       if (filter === "completed") return t.status === "completed";
-      if (filter === "pending") return t.status === "pending";
+      if (filter === "not_initiated") return t.status === "not_initiated";
+      if (filter === "in_progress") return t.status === "in_progress";
+      if (filter === "pending") return t.status !== "completed";
       return true;
     })
     .filter((t) =>
@@ -192,7 +197,7 @@ export default function DashboardPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onToggle={toggleTask}
+                    onStatusChange={updateTaskStatus}
                     onEdit={openEdit}
                     onDelete={(id) => setDeleteId(id)}
                   />
@@ -233,12 +238,12 @@ export default function DashboardPage() {
 
       {/* Add Modal */}
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Task">
-        <TaskForm onSubmit={handleCreate} loading={formLoading} />
+        <TaskForm onSubmit={handleCreate} loading={formLoading} projects={projects} defaultDate={todayStr()} />
       </Modal>
 
       {/* Edit Modal */}
       <Modal isOpen={editOpen} onClose={() => { setEditOpen(false); setEditTarget(null); }} title="Edit Task">
-        <TaskForm onSubmit={handleEdit} initial={editTarget} loading={formLoading} />
+        <TaskForm onSubmit={handleEdit} initial={editTarget} loading={formLoading} projects={projects} />
       </Modal>
 
       {/* Delete Confirm */}

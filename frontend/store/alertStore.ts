@@ -6,7 +6,7 @@ export interface OverdueTask {
   title: string;
   description: string;
   priority: "low" | "medium" | "high";
-  status: "pending" | "completed";
+  status: "not_initiated" | "in_progress" | "completed";
   taskDate: string;
   createdAt: string;
 }

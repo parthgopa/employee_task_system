@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, CheckSquare, History, BarChart2,
-  Settings, LogOut, Menu, X, Target, Bell,
+  Settings, LogOut, Menu, X, Target, Bell, Folder,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAlertStore } from "@/store/alertStore";
@@ -14,6 +14,7 @@ import clsx from "clsx";
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/tasks",     icon: CheckSquare,     label: "My Tasks" },
+  { href: "/projects",  icon: Folder,          label: "Projects" },
   { href: "/alerts",    icon: Bell,            label: "Alerts", showBadge: true },
   { href: "/history",   icon: History,         label: "History" },
   { href: "/analytics", icon: BarChart2,       label: "Analytics" },

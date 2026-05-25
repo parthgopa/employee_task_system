@@ -225,7 +225,7 @@ export default function HistoryPage() {
                       <TaskCard
                         key={task._id}
                         task={task}
-                        onToggle={() => {}}
+                        onStatusChange={() => {}}
                         onEdit={() => {}}
                         onDelete={() => {}}
                       />

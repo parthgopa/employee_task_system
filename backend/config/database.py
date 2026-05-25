@@ -28,6 +28,9 @@ def _create_indexes(db):
     db.users.create_index("email", unique=True)
     db.tasks.create_index([("userId", 1), ("taskDate", -1)])
     db.tasks.create_index([("userId", 1), ("status", 1)])
+    db.tasks.create_index([("userId", 1), ("projectId", 1)])
+    db.projects.create_index([("userId", 1), ("status", 1)])
+    db.projects.create_index([("userId", 1), ("createdAt", -1)])
     db.daily_goals.create_index([("userId", 1), ("date", 1)], unique=True)
 
 def close_db():

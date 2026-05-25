@@ -99,29 +99,43 @@ export function useTasks(currentViewDate?: string) {
     [removeTask]
   );
 
-  const toggleTask = useCallback(
-    async (id: string) => {
+  const updateTaskStatus = useCallback(
+    async (id: string, status: "not_initiated" | "in_progress" | "completed") => {
       try {
-        const res = await taskService.toggleTask(id);
-        const toggled = res.data.data;
-        updateTask(id, toggled);
+        const res = await taskService.updateTaskStatus(id, status);
+        const updated = res.data.data;
+        updateTask(id, updated);
 
-        if (toggled.status === "completed") {
+        if (status === "completed") {
           addNotification({
             title: "Task Completed",
-            message: `"${toggled.title}" marked as done!`,
+            message: `"${updated.title}" marked as done!`,
             type: "task_completed",
           });
         }
       } catch {
-        toast.error("Failed to update task");
+        toast.error("Failed to update task status");
       }
     },
     [updateTask, addNotification]
   );
 
+  // Legacy toggle for backward compatibility
+  const toggleTask = useCallback(
+    async (id: string) => {
+      const task = tasks.find((t) => t._id === id);
+      if (!task) return;
+      
+      const newStatus = task.status === "completed" ? "not_initiated" : "completed";
+      await updateTaskStatus(id, newStatus);
+    },
+    [tasks, updateTaskStatus]
+  );
+
   const completedTasks = tasks.filter((t) => t.status === "completed");
-  const pendingTasks = tasks.filter((t) => t.status === "pending");
+  const notInitiatedTasks = tasks.filter((t) => t.status === "not_initiated");
+  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
+  const pendingTasks = [...notInitiatedTasks, ...inProgressTasks];
   const completionRate =
     tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
 
@@ -129,6 +143,8 @@ export function useTasks(currentViewDate?: string) {
     tasks,
     loading,
     completedTasks,
+    notInitiatedTasks,
+    inProgressTasks,
     pendingTasks,
     completionRate,
     fetchTodayTasks,
@@ -136,6 +152,7 @@ export function useTasks(currentViewDate?: string) {
     createTask,
     editTask,
     deleteTask,
+    updateTaskStatus,
     toggleTask,
   };
 }
