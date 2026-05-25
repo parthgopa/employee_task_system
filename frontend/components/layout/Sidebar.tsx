@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, CheckSquare, History, BarChart2,
-  Settings, LogOut, Menu, X, Target,
+  Settings, LogOut, Menu, X, Target, Bell,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
+import { useAlertStore } from "@/store/alertStore";
+import { useState, useEffect } from "react";
 import clsx from "clsx";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/tasks",     icon: CheckSquare,     label: "My Tasks" },
+  { href: "/alerts",    icon: Bell,            label: "Alerts", showBadge: true },
   { href: "/history",   icon: History,         label: "History" },
   { href: "/analytics", icon: BarChart2,       label: "Analytics" },
   { href: "/settings",  icon: Settings,        label: "Settings" },
@@ -21,7 +23,15 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { summary, fetchAlerts } = useAlertStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    fetchAlerts();
+    // Poll every 5 minutes for new alerts
+    const interval = setInterval(fetchAlerts, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchAlerts]);
 
   const sidebarContent = (
     <>
@@ -48,17 +58,37 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "12px 0" }}>
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className={clsx("sidebar-nav-item", pathname.startsWith(href) && "active")}
-            onClick={() => setMobileOpen(false)}
-          >
-            <Icon size={18} />
-            {label}
-          </Link>
-        ))}
+        {NAV_ITEMS.map(({ href, icon: Icon, label, showBadge }) => {
+          const alertCount = showBadge ? (summary?.count || 0) : 0;
+          const isHighPriority = summary?.hasHighPriority;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={clsx("sidebar-nav-item", pathname.startsWith(href) && "active")}
+              onClick={() => setMobileOpen(false)}
+              style={{ position: "relative" }}
+            >
+              <Icon size={18} />
+              {label}
+              {alertCount > 0 && (
+                <span style={{
+                  marginLeft: "auto",
+                  background: isHighPriority ? "var(--danger)" : "var(--warning)",
+                  color: "#fff",
+                  fontSize: "var(--text-xs)",
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: "var(--radius-full)",
+                  minWidth: 20,
+                  textAlign: "center",
+                }}>
+                  {alertCount > 99 ? "99+" : alertCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User */}

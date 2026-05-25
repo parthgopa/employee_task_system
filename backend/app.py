@@ -11,6 +11,7 @@ from routes.goal_routes import goal_bp
 from routes.history_routes import history_bp
 from routes.analytics_routes import analytics_bp
 from routes.admin_routes import admin_bp
+from routes.alert_routes import alert_bp
 
 def create_app():
     app = Flask(__name__)
@@ -35,6 +36,7 @@ def create_app():
     app.register_blueprint(history_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(alert_bp)
 
     register_error_handlers(app)
 
