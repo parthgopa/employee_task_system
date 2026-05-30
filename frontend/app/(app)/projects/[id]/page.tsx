@@ -32,6 +32,7 @@ export default function ProjectDetailPage() {
     if (id) loadProject();
   }, [id]);
 
+
   const loadProject = async () => {
     setLoading(true);
     try {
@@ -39,6 +40,7 @@ export default function ProjectDetailPage() {
         projectService.getProject(id as string),
         taskService.getTasksByProject(id as string),
       ]);
+      console.log(projectRes.data.data);
       setProject(projectRes.data.data);
       setTasks(tasksRes.data.data || []);
     } catch {

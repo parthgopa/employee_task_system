@@ -65,6 +65,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchTodayTasks();
     fetchGoal();
+    loadProjects();
   }, [fetchTodayTasks, fetchGoal]);
 
   const handleCreate = async (data: Parameters<typeof createTask>[0]) => {
@@ -74,6 +75,15 @@ export default function DashboardPage() {
       setAddOpen(false);
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      const res = await projectService.getProjects();
+      setProjects(res.data.data || []);
+    } catch {
+      // Silently fail - projects are optional
     }
   };
 
